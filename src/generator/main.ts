@@ -2,10 +2,10 @@
 
 import { generatorHandler } from '@prisma/generator-helper'
 import fs from 'node:fs/promises'
-import path from 'path/posix'
 import { analyseDMMF } from '../dmmf'
 import { generateIndex } from './generateIndex'
 import { generateModel } from './generateModel'
+import { getPrismaClientModule } from './prismaModule'
 
 export interface Config {
   concurrently?: boolean
@@ -42,17 +42,11 @@ generatorHandler({
     )
     const prismaClientOutput =
       prismaClient.output?.value ?? 'node_modules/@prisma/client'
-    // Normalize to forward slashes for consistent detection and import path
-    const normalizedPrismaClientOutput = prismaClientOutput.replace(/\\/g, '/')
-    let prismaClientModule: string
-    if (normalizedPrismaClientOutput.endsWith('node_modules/@prisma/client')) {
-      prismaClientModule = '@prisma/client'
-    } else {
-      // Always use forward slashes in import paths
-      prismaClientModule = path
-        .relative(outputDir, prismaClientOutput)
-        .replace(/\\/g, '/')
-    }
+
+    const prismaClientModule = getPrismaClientModule(
+      prismaClientOutput,
+      outputDir
+    )
 
     const longestModelNameLength = Object.keys(validModels).reduce(
       (max, model) => Math.max(max, model.length),
