@@ -42,12 +42,17 @@ generatorHandler({
     )
     const prismaClientOutput =
       prismaClient.output?.value ?? 'node_modules/@prisma/client'
-
-    const prismaClientModule = prismaClientOutput.endsWith(
-      'node_modules/@prisma/client'
-    )
-      ? '@prisma/client'
-      : path.relative(outputDir, prismaClientOutput)
+    // Normalize to forward slashes for consistent detection and import path
+    const normalizedPrismaClientOutput = prismaClientOutput.replace(/\\/g, '/')
+    let prismaClientModule: string
+    if (normalizedPrismaClientOutput.endsWith('node_modules/@prisma/client')) {
+      prismaClientModule = '@prisma/client'
+    } else {
+      // Always use forward slashes in import paths
+      prismaClientModule = path
+        .relative(outputDir, prismaClientOutput)
+        .replace(/\\/g, '/')
+    }
 
     const longestModelNameLength = Object.keys(validModels).reduce(
       (max, model) => Math.max(max, model.length),
