@@ -2,10 +2,10 @@
 
 import { generatorHandler } from '@prisma/generator-helper'
 import fs from 'node:fs/promises'
-import path from 'path/posix'
 import { analyseDMMF } from '../dmmf'
 import { generateIndex } from './generateIndex'
 import { generateModel } from './generateModel'
+import { getPrismaClientModule } from './prismaModule'
 
 export interface Config {
   concurrently?: boolean
@@ -43,11 +43,10 @@ generatorHandler({
     const prismaClientOutput =
       prismaClient.output?.value ?? 'node_modules/@prisma/client'
 
-    const prismaClientModule = prismaClientOutput.endsWith(
-      'node_modules/@prisma/client'
+    const prismaClientModule = getPrismaClientModule(
+      prismaClientOutput,
+      outputDir
     )
-      ? '@prisma/client'
-      : path.relative(outputDir, prismaClientOutput)
 
     const longestModelNameLength = Object.keys(validModels).reduce(
       (max, model) => Math.max(max, model.length),
