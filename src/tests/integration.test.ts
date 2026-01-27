@@ -2,7 +2,9 @@ import { cloakedStringRegex } from '@47ng/cloak'
 import { createHash } from 'node:crypto'
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { beforeAll, describe, expect, test, vi } from 'vitest'
 import { errors } from '../errors'
+import type { PrismaClient } from './.generated/client'
 import { makeExtensionClient, makeMiddlewareClient } from './prismaClient'
 import * as sqlite from './sqlite'
 
@@ -30,7 +32,7 @@ describe.each(clients)('integration ($type)', ({ client }) => {
     })
     const dbValue = await sqlite.get({ table: 'User', where: { email } })
     expect(received.name).toEqual('James Bond') // clear text in returned value
-    expect(dbValue.name).toMatch(cloakedStringRegex) // encrypted in database
+    expect(dbValue!.name).toMatch(cloakedStringRegex) // encrypted in database
   })
 
   test('query user by encrypted field', async () => {
@@ -130,9 +132,9 @@ describe.each(clients)('integration ($type)', ({ client }) => {
     })
     expect(received.author?.name).toEqual('James Bond')
     expect(received.content).toEqual('You only live twice.')
-    expect(user.name).toMatch(cloakedStringRegex)
-    expect(post.content).toMatch(cloakedStringRegex)
-    expect(post.title).toEqual("I'm back") // clear text in the database
+    expect(user!.name).toMatch(cloakedStringRegex)
+    expect(post!.content).toMatch(cloakedStringRegex)
+    expect(post!.title).toEqual("I'm back") // clear text in the database
   })
 
   test('update user', async () => {
@@ -146,7 +148,7 @@ describe.each(clients)('integration ($type)', ({ client }) => {
     })
     const user = await sqlite.get({ table: 'User', where: { email } })
     expect(received.name).toEqual('The name is Bond...')
-    expect(user.name).toMatch(cloakedStringRegex)
+    expect(user!.name).toMatch(cloakedStringRegex)
   })
 
   test('update user (with set)', async () => {
@@ -162,7 +164,7 @@ describe.each(clients)('integration ($type)', ({ client }) => {
     })
     const user = await sqlite.get({ table: 'User', where: { email } })
     expect(received.name).toEqual('...James Bond.')
-    expect(user.name).toMatch(cloakedStringRegex)
+    expect(user!.name).toMatch(cloakedStringRegex)
     await client.user.delete({
       where: {
         email
@@ -222,10 +224,10 @@ describe.each(clients)('integration ($type)', ({ client }) => {
       table: 'Category',
       where: { name: 'Quotes' }
     })
-    expect(user.name).toMatch(cloakedStringRegex)
-    expect(post1.content).toMatch(cloakedStringRegex)
-    expect(post2.content).toMatch(cloakedStringRegex)
-    expect(category.name).toEqual('Quotes')
+    expect(user!.name).toMatch(cloakedStringRegex)
+    expect(post1!.content).toMatch(cloakedStringRegex)
+    expect(post2!.content).toMatch(cloakedStringRegex)
+    expect(category!.name).toEqual('Quotes')
   })
 
   test('top level with no encrypted field, nested with encrypted field - using select', async () => {
@@ -283,12 +285,12 @@ describe.each(clients)('integration ($type)', ({ client }) => {
     const user = await sqlite.get({ table: 'User', where: { email } })
     expect(params.data.name).toEqual('Xenia Onatop')
     expect(received.name).toEqual('Xenia Onatop')
-    expect(user.name).toMatch(cloakedStringRegex)
+    expect(user!.name).toMatch(cloakedStringRegex)
   })
 
   test('orderBy is not supported', async () => {
     const cer = console.error
-    console.error = jest.fn()
+    console.error = vi.fn()
     let received = await client.user.findMany({
       orderBy: {
         name: 'desc'
@@ -350,29 +352,31 @@ describe.each(clients)('integration ($type)', ({ client }) => {
   })
 
   test('transactions', async () => {
-    const id = await client.$transaction(async tx => {
-      const post = await tx.post.create({
-        data: {
-          title: 'Mission orders',
-          author: {
-            connect: {
-              name: 'James Bond'
-            }
-          },
-          content: `This message will self-destruct in 5 seconds
+    const id = await client.$transaction(
+      async (tx: Pick<PrismaClient, 'post'>) => {
+        const post = await tx.post.create({
+          data: {
+            title: 'Mission orders',
+            author: {
+              connect: {
+                name: 'James Bond'
+              }
+            },
+            content: `This message will self-destruct in 5 seconds
               (oops, wrong spy show)`
-        }
-      })
-      await tx.post.delete({ where: { id: post.id } })
-      return post.id
-    })
+          }
+        })
+        await tx.post.delete({ where: { id: post.id } })
+        return post.id
+      }
+    )
     const post = await client.post.findUnique({ where: { id } })
     expect(post).toBeNull()
   })
 
   test('transactions with rollback', async () => {
     try {
-      await client.$transaction(async tx => {
+      await client.$transaction(async (tx: Pick<PrismaClient, 'post'>) => {
         const post = await tx.post.create({
           data: {
             title: 'Mission orders',
@@ -440,7 +444,7 @@ describe.each(clients)('integration ($type)', ({ client }) => {
       where: { email: normalizeTestEmail }
     })
     expect(received.name).toEqual(' François') // clear text in returned value
-    expect(dbValue.name).toMatch(cloakedStringRegex) // encrypted in database
+    expect(dbValue!.name).toMatch(cloakedStringRegex) // encrypted in database
   })
 
   test('query user by encrypted and hashed name field with a normalized input (with equals)', async () => {

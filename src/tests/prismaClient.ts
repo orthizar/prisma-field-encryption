@@ -1,5 +1,5 @@
 import { fieldEncryptionExtension, fieldEncryptionMiddleware } from '../index'
-import { Configuration } from '../types'
+import type { Configuration } from '../types'
 import { Prisma, PrismaClient } from './.generated/client'
 
 const TEST_ENCRYPTION_KEY =

@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client/extension'
 import { debug } from './debugger'
 import { analyseDMMF } from './dmmf'
 import { configureKeys, decryptOnRead, encryptOnWrite } from './encryption'
-import { Configuration, MiddlewareParams } from './types'
+import type { Configuration, MiddlewareParams } from './types'
 
 export function fieldEncryptionExtension<
   Models extends string = any,
